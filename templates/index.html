@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Window Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #333;
+        }
+
+        h1 {
+            color: #4CAF50;
+        }
+
+        p {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            width: 80%;
+            max-width: 400px;
+            margin: 20px 0;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            flex: 1;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #status {
+            font-weight: bold;
+        }
+
+        #environment {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 400px;
+        }
+
+        #environment p {
+            margin: 5px 0;
+        }
+
+        .decision {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Window Control</h1>
+    <p>Current window status: <span id="status">{{ status }}</span></p>
+    <div class="button-container">
+        <button onclick="controlWindow('open')">Open Window</button>
+        <button onclick="controlWindow('close')">Close Window</button>
+    </div>
+    <div id="environment">
+        <h2>Environment Data</h2>
+        <p>PM2.5: <span id="pm25">Loading...</span> µg/m³</p>
+        <p>Temperature: <span id="temperature">Loading...</span> °C</p>
+        <p>Humidity: <span id="humidity">Loading...</span> %</p>
+        <p>Rain: <span id="rain">Loading...</span></p>
+        <p>Gas: <span id="gas">Loading...</span> ppm</p>
+        <p>Light: <span id="light">Loading...</span> lx</p>
+        <div class="decision" id="decision">Calculating...</div>
+    </div>
+    <script>
+        function controlWindow(action) {
+            fetch('/window', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'action=' + action
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('status').textContent = data.status;
+                alert(data.message);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function fetchEnvironmentData() {
+            fetch('/environment')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('pm25').textContent = data.pm25;
+                document.getElementById('temperature').textContent = data.temperature;
+                document.getElementById('humidity').textContent = data.humidity;
+                document.getElementById('rain').textContent = data.rain;
+                document.getElementById('gas').textContent = data.gas;
+                document.getElementById('light').textContent = data.light;
+                updateDecision(data);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function updateDecision(data) {
+            let decisionText = '';
+
+            if (data.pm25 > 76) {
+                decisionText += 'PM2.5 levels are very bad. Close the window.<br>';
+            } else if (data.pm25 > 51) {
+                decisionText += 'PM2.5 levels are bad. Close the window.<br>';
+            } else if (data.pm25 > 16) {
+                decisionText += 'PM2.5 levels are normal. Open the window.<br>';
+            } else {
+                decisionText += 'PM2.5 levels are good. Open the window.<br>';
+            }
+
+            if (data.temperature < 15 && data.humidity > 70) {
+                decisionText += 'Temperature is below 15°C and humidity is above 70%. Conditions are comfortable. Close the window.<br>';
+            } else if (data.temperature >= 18 && data.temperature <= 20 && data.humidity > 60) {
+                decisionText += 'Temperature is between 18°C and 20°C and humidity is above 60%. Conditions are comfortable. Close the window.<br>';
+            } else if (data.temperature >= 21 && data.temperature <= 23 && data.humidity > 50) {
+                decisionText += 'Temperature is between 21°C and 23°C and humidity is above 50%. Conditions are comfortable. Close the window.<br>';
+            } else if (data.temperature >= 24 && data.humidity > 40) {
+                decisionText += 'Temperature is above 24°C and humidity is above 40%. Conditions are comfortable. Close the window.<br>';
+            } else if (data.humidity >= 50 && data.humidity <= 60) {
+                decisionText += 'Humidity is between 50% and 60%. Conditions are comfortable. Close the window.<br>';
+            } else {
+                decisionText += 'Temp, Humidity Conditions are uncomfortable. Open the window.<br>';
+            }
+
+            if (data.rain > 400) {
+                decisionText += 'It is raining. Close the window.<br>';
+            } else {
+                decisionText += 'No rain. Open the window.<br>';
+            }
+
+            if (data.gas > 200) {
+                decisionText += 'Gas levels are high. Close the window.<br>';
+            } else if (data.gas < 110){
+                decisionText += 'Gas levels are safe. Open the window.<br>';
+            }
+
+            if (data.light > 500) {
+                decisionText += 'It is dark outside. Close the window.<br>';
+            } else {
+                decisionText += 'It is bright outside. Open the window.<br>';
+            }
+
+            document.getElementById('decision').innerHTML = decisionText;
+        }
+
+        // Initial data load and periodic updates
+        fetchEnvironmentData();
+        setInterval(fetchEnvironmentData, 5000);  // Update data every 5 seconds
+    </script>
+</body>
+</html>
