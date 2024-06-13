@@ -114,7 +114,7 @@ def main():
         while True:
             print("Ready to receive Bluetooth message")
             sensor_data = receive_Uno_message(sock)
-            print(sensor_data,1)
+            print(sensor_data)
             time.sleep(5)
             if sensor_data:
                 # Parse sensor data
